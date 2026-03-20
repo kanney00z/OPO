@@ -23,9 +23,14 @@
                     <span class="text-gray-400">|</span>
                     <span class="text-gray-600 font-medium">Admin Dashboard</span>
                 </div>
-                <button onclick="fetchOrders()" class="bg-orange-500 hover:bg-orange-600 text-white px-4 py-2 rounded-lg text-sm font-medium transition duration-200">
-                    รีเฟรชข้อมูล
-                </button>
+                <div class="flex items-center gap-4">
+                    <a href="index.html" class="text-sm text-gray-500 hover:text-orange-500 transition duration-200">
+                        กลับหน้าสั่งอาหาร
+                    </a>
+                    <button onclick="fetchOrders()" class="bg-orange-500 hover:bg-orange-600 text-white px-4 py-2 rounded-lg text-sm font-medium transition duration-200">
+                        รีเฟรชข้อมูล
+                    </button>
+                </div>
             </div>
         </div>
     </nav>
@@ -123,7 +128,11 @@
                         <div class="flex gap-2">
                             <button onclick="openEditModal(${JSON.stringify(order).replace(/"/g, '&quot;')})" 
                                 class="flex-1 bg-blue-50 text-blue-600 py-2 rounded-lg text-sm font-bold hover:bg-blue-100 transition">
-                                แก้ไข
+                                แก้ไขราคา/สถานะ
+                            </button>
+                            <button onclick="printOrder(${JSON.stringify(order).replace(/"/g, '&quot;')})" 
+                                class="bg-gray-50 text-gray-600 px-4 py-2 rounded-lg text-sm font-bold hover:bg-gray-100 transition">
+                                พิมพ์บิล
                             </button>
                             <button onclick="deleteOrder('${order.id}')" 
                                 class="bg-red-50 text-red-600 px-4 py-2 rounded-lg text-sm font-bold hover:bg-red-100 transition">
@@ -137,6 +146,51 @@
                 console.error('Error fetching orders:', err);
                 container.innerHTML = '<div class="col-span-full text-center py-20 text-red-500">ไม่สามารถโหลดข้อมูลได้</div>';
             }
+        }
+
+        function printOrder(order) {
+            // Simple way to print: open a new window with a receipt-like layout
+            const printWindow = window.open('', '_blank');
+            const typeLabel = order.order_type === 'dine-in' ? 'ทานที่นี่' : 'กลับบ้าน';
+            const dateStr = new Date(order.created_at).toLocaleString('th-TH');
+            
+            printWindow.document.write(`
+                <html>
+                <head>
+                    <title>พิมพ์บิล - ${order.order_id}</title>
+                    <link href="https://fonts.googleapis.com/css2?family=Kanit&display=swap" rel="stylesheet">
+                    <style>
+                        body { font-family: 'Kanit', sans-serif; padding: 20px; max-width: 300px; margin: auto; }
+                        .text-center { text-align: center; }
+                        .dotted { border-top: 1px dotted #000; margin: 10px 0; }
+                        .flex { display: flex; justify-content: space-between; }
+                        .font-bold { font-weight: bold; }
+                        .text-xl { font-size: 1.2rem; }
+                    </style>
+                </head>
+                <body onload="window.print(); window.close();">
+                    <div class="text-center font-bold text-xl">FOODIE RECEIPT</div>
+                    <div class="dotted"></div>
+                    <div class="flex"><span>ID:</span> <span>${order.order_id}</span></div>
+                    <div class="flex"><span>วันที่:</span> <span>${dateStr}</span></div>
+                    <div class="dotted"></div>
+                    <div class="font-bold">รายการ:</div>
+                    <div>${order.food_name}</div>
+                    ${order.instructions ? `<div style="font-size: 0.8rem; font-style: italic;">* ${order.instructions}</div>` : ''}
+                    <div class="dotted"></div>
+                    <div class="flex"><span>รูปแบบ:</span> <span>${typeLabel}</span></div>
+                    ${order.phone_number ? `<div class="flex"><span>โทร:</span> <span>${order.phone_number}</span></div>` : ''}
+                    <div class="dotted"></div>
+                    <div class="flex font-bold text-xl">
+                        <span>ราคารวม:</span>
+                        <span>${order.price || 0} ฿</span>
+                    </div>
+                    <div class="dotted"></div>
+                    <div class="text-center" style="font-size: 0.7rem;">ขอบคุณที่ใช้บริการ</div>
+                </body>
+                </html>
+            `);
+            printWindow.document.close();
         }
 
         function getStatusClass(status) {

@@ -100,6 +100,12 @@
                 สั่งอาหารเลย!
             </button>
         </form>
+
+        <div class="mt-8 pt-6 border-t border-gray-100 text-center">
+            <a href="admin.html" class="text-xs text-gray-400 hover:text-orange-500 transition duration-200">
+                เข้าหน้าหลังบ้าน (สำหรับเจ้าของร้าน)
+            </a>
+        </div>
     </div>
 
     <!-- Receipt Modal (Hidden by default) -->
@@ -134,9 +140,14 @@
                     <div class="text-sm text-gray-600 italic" id="receiptInstructions">---</div>
                 </div>
 
-                <div class="flex justify-between items-center py-2 px-3 bg-gray-50 rounded-lg">
+                <div class="flex justify-between items-center py-2 px-3 bg-gray-50 rounded-lg mb-2">
                     <span class="text-sm text-gray-500">รูปแบบ:</span>
                     <span class="text-sm font-semibold px-2 py-1 rounded bg-orange-100 text-orange-700" id="receiptType">---</span>
+                </div>
+
+                <div class="flex justify-between items-center py-2 px-3 bg-gray-100 rounded-lg">
+                    <span class="text-sm text-gray-500">ราคาสุทธิ:</span>
+                    <span class="text-lg font-bold text-orange-600" id="receiptPriceDisplay">รอแอดมินสรุปราคา</span>
                 </div>
 
                 <div id="receiptPhoneBlock" class="flex justify-between text-sm hidden">
@@ -166,9 +177,9 @@
 
     <script>
         // Supabase configuration
-        const SUPABASE_URL = 'YOUR_SUPABASE_URL';
-        const SUPABASE_ANON_KEY = 'YOUR_SUPABASE_ANON_KEY';
-        const supabase = supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+        const SUPABASE_URL = 'https://axmgnqcefaavzdabkeoz.supabase.co';
+        const SUPABASE_ANON_KEY = 'sb_publishable_4gu_0x-VkDg2GaO5ciD9pw_fa_lU7Qd';
+        const supabaseClient = supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
 
         const form = document.getElementById('orderForm');
         const phoneSection = document.getElementById('phoneSection');
@@ -204,7 +215,7 @@
 
             try {
                 // Save to Supabase
-                const { data: insertedData, error } = await supabase
+                const { data: insertedData, error } = await supabaseClient
                     .from('orders')
                     .insert([
                         {
