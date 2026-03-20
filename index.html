@@ -259,7 +259,7 @@
 
             } catch (err) {
                 console.error('Error saving order:', err);
-                alert('เกิดข้อผิดพลาดในการสั่งอาหาร กรุณาลองใหม่อีกครั้ง');
+                alert('เกิดข้อผิดพลาด: ' + (err.message || 'ไม่สามารถเชื่อมต่อฐานข้อมูลได้') + '\n\nกรุณาตรวจสอบว่าได้สร้างตาราง orders และตั้งค่า RLS ใน Supabase แล้ว');
             } finally {
                 submitBtn.disabled = false;
                 submitBtn.textContent = originalBtnText;

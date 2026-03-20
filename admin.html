@@ -144,7 +144,11 @@
 
             } catch (err) {
                 console.error('Error fetching orders:', err);
-                container.innerHTML = '<div class="col-span-full text-center py-20 text-red-500">ไม่สามารถโหลดข้อมูลได้</div>';
+                container.innerHTML = `<div class="col-span-full text-center py-20 text-red-500">
+                    <p class="font-bold">ไม่สามารถโหลดข้อมูลได้</p>
+                    <p class="text-xs mt-2">ข้อผิดพลาด: ${err.message || 'Unknown'}</p>
+                    <p class="text-xs mt-1">กรุณาตรวจสอบการตั้งค่า RLS ใน Supabase</p>
+                </div>`;
             }
         }
 
