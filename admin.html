@@ -1,0 +1,215 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Admin Dashboard - Foodie</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Kanit:wght@300;400;500;600&display=swap" rel="stylesheet">
+    <style>
+        body { font-family: 'Kanit', sans-serif; background-color: #f1f5f9; }
+        .order-card { transition: all 0.3s ease; }
+        .order-card:hover { transform: translateY(-5px); }
+    </style>
+</head>
+<body class="min-h-screen">
+
+    <nav class="bg-white shadow-sm border-b">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+            <div class="flex justify-between h-16 items-center">
+                <div class="flex items-center gap-2">
+                    <span class="text-2xl font-bold text-orange-600">FOODIE</span>
+                    <span class="text-gray-400">|</span>
+                    <span class="text-gray-600 font-medium">Admin Dashboard</span>
+                </div>
+                <button onclick="fetchOrders()" class="bg-orange-500 hover:bg-orange-600 text-white px-4 py-2 rounded-lg text-sm font-medium transition duration-200">
+                    รีเฟรชข้อมูล
+                </button>
+            </div>
+        </div>
+    </nav>
+
+    <main class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+        <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6" id="ordersList">
+            <!-- Orders will be loaded here -->
+            <div class="col-span-full text-center py-20 text-gray-500">
+                <div class="animate-spin rounded-full h-12 w-12 border-b-2 border-orange-500 mx-auto mb-4"></div>
+                กำลังโหลดข้อมูล...
+            </div>
+        </div>
+    </main>
+
+    <!-- Edit Modal -->
+    <div id="editModal" class="hidden fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50">
+        <div class="bg-white rounded-2xl p-8 w-full max-w-md shadow-2xl">
+            <h2 class="text-xl font-bold text-gray-800 mb-6">แก้ไขออเดอร์ <span id="editOrderId" class="text-orange-500"></span></h2>
+            <form id="editForm" class="space-y-4">
+                <input type="hidden" id="editId">
+                <div>
+                    <label class="block text-sm font-medium text-gray-700 mb-1">ราคา (บาท)</label>
+                    <input type="number" id="editPrice" class="w-full px-4 py-2 rounded-lg border focus:ring-2 focus:ring-orange-500 outline-none">
+                </div>
+                <div>
+                    <label class="block text-sm font-medium text-gray-700 mb-1">สถานะ</label>
+                    <select id="editStatus" class="w-full px-4 py-2 rounded-lg border focus:ring-2 focus:ring-orange-500 outline-none">
+                        <option value="pending">รอดำเนินการ</option>
+                        <option value="cooking">กำลังปรุง</option>
+                        <option value="served">เสิร์ฟแล้ว / เรียบร้อย</option>
+                        <option value="cancelled">ยกเลิก</option>
+                    </select>
+                </div>
+                <div class="flex gap-3 pt-4">
+                    <button type="button" onclick="closeModal()" class="flex-1 px-4 py-2 border rounded-lg hover:bg-gray-50 transition">ยกเลิก</button>
+                    <button type="submit" class="flex-1 px-4 py-2 bg-orange-500 text-white rounded-lg hover:bg-orange-600 transition font-bold">บันทึก</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <script>
+        const SUPABASE_URL = 'https://axmgnqcefaavzdabkeoz.supabase.co';
+        const SUPABASE_ANON_KEY = 'sb_publishable_4gu_0x-VkDg2GaO5ciD9pw_fa_lU7Qd';
+        const supabaseClient = supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+
+        async function fetchOrders() {
+            const container = document.getElementById('ordersList');
+            
+            try {
+                const { data, error } = await supabaseClient
+                    .from('orders')
+                    .select('*')
+                    .order('created_at', { ascending: false });
+
+                if (error) throw error;
+
+                if (data.length === 0) {
+                    container.innerHTML = '<div class="col-span-full text-center py-20 text-gray-500">ยังไม่มีออเดอร์ในขณะนี้</div>';
+                    return;
+                }
+
+                container.innerHTML = data.map(order => `
+                    <div class="bg-white rounded-2xl shadow-sm border p-6 order-card relative overflow-hidden">
+                        <div class="absolute top-0 right-0 p-2">
+                            <span class="text-[10px] uppercase font-bold px-2 py-1 rounded-bl-lg ${getStatusClass(order.status)}">
+                                ${order.status}
+                            </span>
+                        </div>
+                        <div class="flex justify-between items-start mb-4">
+                            <div>
+                                <h3 class="font-bold text-lg text-gray-800">${order.order_id}</h3>
+                                <p class="text-xs text-gray-400">${new Date(order.created_at).toLocaleString('th-TH')}</p>
+                            </div>
+                        </div>
+                        <div class="mb-4">
+                            <div class="text-sm font-semibold text-gray-500">เมนู:</div>
+                            <div class="text-orange-600 font-bold">${order.food_name}</div>
+                        </div>
+                        ${order.instructions ? `
+                        <div class="mb-4 p-2 bg-gray-50 rounded-lg">
+                            <div class="text-xs font-semibold text-gray-400">หมายเหตุ:</div>
+                            <div class="text-sm text-gray-600">${order.instructions}</div>
+                        </div>` : ''}
+                        <div class="flex justify-between text-sm mb-6 border-t pt-4">
+                            <div>
+                                <span class="text-gray-400">ประเภท:</span> 
+                                <span class="font-medium">${order.order_type === 'dine-in' ? 'ทานที่นี่' : 'กลับบ้าน'}</span>
+                            </div>
+                            <div>
+                                <span class="text-gray-400">ราคา:</span> 
+                                <span class="font-bold text-gray-800">${order.price || 0} ฿</span>
+                            </div>
+                        </div>
+                        <div class="flex gap-2">
+                            <button onclick="openEditModal(${JSON.stringify(order).replace(/"/g, '&quot;')})" 
+                                class="flex-1 bg-blue-50 text-blue-600 py-2 rounded-lg text-sm font-bold hover:bg-blue-100 transition">
+                                แก้ไข
+                            </button>
+                            <button onclick="deleteOrder('${order.id}')" 
+                                class="bg-red-50 text-red-600 px-4 py-2 rounded-lg text-sm font-bold hover:bg-red-100 transition">
+                                ลบ
+                            </button>
+                        </div>
+                    </div>
+                `).join('');
+
+            } catch (err) {
+                console.error('Error fetching orders:', err);
+                container.innerHTML = '<div class="col-span-full text-center py-20 text-red-500">ไม่สามารถโหลดข้อมูลได้</div>';
+            }
+        }
+
+        function getStatusClass(status) {
+            switch(status) {
+                case 'pending': return 'bg-yellow-100 text-yellow-700';
+                case 'cooking': return 'bg-blue-100 text-blue-700';
+                case 'served': return 'bg-green-100 text-green-700';
+                case 'cancelled': return 'bg-red-100 text-red-700';
+                default: return 'bg-gray-100 text-gray-700';
+            }
+        }
+
+        function openEditModal(order) {
+            document.getElementById('editId').value = order.id;
+            document.getElementById('editOrderId').textContent = order.order_id;
+            document.getElementById('editPrice').value = order.price;
+            document.getElementById('editStatus').value = order.status;
+            document.getElementById('editModal').classList.remove('hidden');
+        }
+
+        function closeModal() {
+            document.getElementById('editModal').classList.add('hidden');
+        }
+
+        document.getElementById('editForm').addEventListener('submit', async (e) => {
+            e.preventDefault();
+            const id = document.getElementById('editId').value;
+            const price = document.getElementById('editPrice').value;
+            const status = document.getElementById('editStatus').value;
+
+            try {
+                const { error } = await supabaseClient
+                    .from('orders')
+                    .update({ price: parseFloat(price), status: status })
+                    .eq('id', id);
+
+                if (error) throw error;
+                closeModal();
+                fetchOrders();
+            } catch (err) {
+                alert('แก้ไขไม่สำเร็จ: ' + err.message);
+            }
+        });
+
+        async function deleteOrder(id) {
+            if (!confirm('คุณแน่ใจหรือไม่ว่าต้องการลบออเดอร์นี้?')) return;
+            
+            try {
+                const { error } = await supabaseClient
+                    .from('orders')
+                    .delete()
+                    .eq('id', id);
+
+                if (error) throw error;
+                fetchOrders();
+            } catch (err) {
+                alert('ลบไม่สำเร็จ: ' + err.message);
+            }
+        }
+
+        // Initial fetch
+        fetchOrders();
+
+        // Optional: Realtime update
+        const channels = supabaseClient.channel('custom-all-channel')
+        .on(
+            'postgres_changes',
+            { event: '*', schema: 'public', table: 'orders' },
+            (payload) => {
+                fetchOrders();
+            }
+        )
+        .subscribe();
+    </script>
+</body>
+</html>
